@@ -90,6 +90,14 @@ vows.describe('resourcer/engines/database').addVows({
                     assert.equal(res.status, 201);
                 }
             }
+        }
+    }
+}).addBatch({
+    "A default Resource factory" : {
+        topic: function() {
+            return this.Factory = resourcer.defineResource(function () {
+                this.use('database');
+            });
         },
         "an all() request": {
             topic: function (r) {
@@ -97,7 +105,7 @@ vows.describe('resourcer/engines/database').addVows({
             },
             "should respond with an array of all records": function (e, obj) {
                 assert.isArray (obj);
-                assert.length  (obj, 4);
+                assert.length  (obj, 5);
             }
         }
     }
@@ -109,18 +117,23 @@ vows.describe('resourcer/engines/database').addVows({
             });
         },
         "an update() request": {
-            "from a get() request": {
-                "when successful": {
-                    topic: function (r) {
-                        that = this;
-                        r.get('bob', function (e, obj) {
-                            obj.update({ age: 45 }, that.callback);
-                        });
-                    },
-                    "should respond with 201": function (e, res) {
-                        assert.isNull(e);
-                        assert.equal(res.status, 201);
-                    }
+            topic: function (r) {
+                this.cache = r.connection.cache;
+                r.update('bob', { age: 36 }, this.callback);
+            },
+            "should respond successfully": function (e, res) {
+                assert.isNull (e);
+            },
+            "followed by another update() request": {
+                topic: function (_, r) {
+                    r.update('bob', { age: 37 }, this.callback);
+                },
+                "should respond successfully": function (e, res) {
+                    assert.isNull (e);
+                },
+                "should save the latest revision to the cache": function (e, res) {
+                    assert.equal (this.cache.store['bob'].age, 37);
+                    assert.match (this.cache.store['bob']._rev, /^4-/);
                 }
             }
         }

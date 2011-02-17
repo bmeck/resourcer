@@ -1,4 +1,7 @@
-require.paths.unshift(require('path').join(__dirname, '..', 'lib'));
+//
+// Remove this until we are ready to tackle entity relationships better.
+//
+/*require.paths.unshift(require('path').join(__dirname, '..', 'lib'));
 
 var path = require('path'),
     sys = require('sys'),
@@ -81,4 +84,4 @@ vows.describe('resourcer/resource/relationship').addBatch({
             },
         }
     }
-}).export(module);
+}).export(module);*/
