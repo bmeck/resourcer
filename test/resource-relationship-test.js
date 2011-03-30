@@ -1,87 +1,92 @@
-//
-// Remove this until we are ready to tackle entity relationships better.
-//
-/*require.paths.unshift(require('path').join(__dirname, '..', 'lib'));
-
 var path = require('path'),
     sys = require('sys'),
     assert = require('assert'),
     events = require('events'),
     http = require('http'),
-    fs = require('fs'),
-    cradle = require('cradle'),
-    vows = require('vows'),
-    resourcer = require('resourcer');
+    fs = require('fs');
+
+require.paths.unshift(path.join(__dirname, '..', 'lib'));
+
+var cradle = require('cradle');
+
+var vows = require('vows');
+
+var resourcer = require('resourcer');
+
+var numberOfArticles = 5;
 
 resourcer.env = 'test';
 
 vows.describe('resourcer/resource/relationship').addBatch({
-    "A database containing articles and other resources": {
-        topic: function () {
-            resourcer.use('database');
-            var promise = new(events.EventEmitter);
-            var db = new(cradle.Connection)().database('test');
-            db.destroy(function () {
-                db.create(function () {
-                    db.save([
-                        { resource: 'Contact', _id: 'indexzero',  name: 'indexzero', address: '123 Nowhere St.', },    
-                        { resource: 'Contact', _id: 'cloudhead',  name: 'cloudhead', address: '123 Rue Nowhere', },    
-                        { resource: 'Contact', _id: 'marak',      name: 'marak',     address: '123 Nowhere St.', },    
-                        { resource: 'Phone', _id: '0000000000', contact_id: 'indexzero', type: 'home',  },    
-                        { resource: 'Phone', _id: '1111111111', contact_id: 'indexzero', type: 'work',  },
-                        { resource: 'Phone', _id: '2222222222', contact_id: 'indexzero', type: 'mobile',  },    
-                        { resource: 'Phone', _id: '3333333333', contact_id: 'cloudhead', type: 'home',  },    
-                        { resource: 'Phone', _id: '4444444444', contact_id: 'cloudhead', type: 'work',  },
-                        { resource: 'Phone', _id: '5555555555', contact_id: 'cloudhead', type: 'mobile',  },    
-                        { resource: 'Phone', _id: '6666666666', contact_id: 'marak',    type: 'home',  },    
-                        { resource: 'Phone', _id: '7777777777', contact_id: 'marak',    type: 'work',  },
-                        { resource: 'Phone', _id: '9999999999', contact_id: 'marak',    type: 'mobile',  },    
-                    ], function () {
-                        promise.emit('success');
+    "One-To-Many:": {
+        "A database containing authors and articles": {
+            topic: function () {
+                resourcer.use('database');
+                var db = new(cradle.Connection)().database('test'), callback = this.callback;
+                db.destroy(function () {
+                    db.create(function () {
+                        db.save([
+                            { resource: 'Article', title: 'The Great Gatsby', author: 'fitzgerald', tags: ['classic'] },    
+                            { resource: 'Article', title: 'Finding vim',      author: 'cloudhead', tags: ['hacking', 'vi'] },    
+                            { resource: 'Article', title: 'On Writing',       author: 'cloudhead', tags: ['writing'] },    
+                            { resource: 'Article', title: 'vi Zen',           author: 'cloudhead', tags: ['vi', 'zen'] },    
+                            { resource: 'Article', title: 'Channeling force', author: 'yoda',      tags: ['force', 'zen'] },    
+                            { resource: 'Body',    name: 'fitzgerald' }
+                        ], callback);
                     });
-                });
-            })
-            return promise;
-        },
-        "is created": function () {}
-    } 
-}).addBatch({
-    "A Resource definition with relationships": {
-        topic: function () {
-            resourcer.defineResource('Phone', function () {
-                this.use('database');
-                
-                this.property('type', 'string');
-                this.parent('contact');
-            });
-            
-            return resourcer.defineResource('Contact', function () {
-                this.use('database');
-                
-                this.property('name', 'string');
-                this.property('address', 'string');
-                this.child('phone');
-            }).register();
-        },
-        "should respond to the child filters": function (R) {
-            assert.isFunction (R.phone);
-        },
-        "can be used to query the database:": {
-            "<phone>": {
-                topic: function (Contact) {
-                    this.Contact = Contact;
-                    Contact.phone(this.callback);
-                },
-                "should return an array of all published Articles": function (e, res) {
-                    var that = this;
-                    assert.isArray (res);
-                    assert.length  (res, 9);
-                    res.forEach(function (d) {
-                        assert.isObject   (d);
-                        assert.equal      (d.resource, 'Phone');
-                    });
-                }
+                })
             },
+            "and a Resource definition for Author and Article": {
+                topic: function () {
+                    this.Article = resourcer.define('article', function () {});
+                    this.Author  = resourcer.define('author',  function () { this.child('article') });       
+                    this.Article.parent('author');
+                    return null;
+                },
+                "Author should have a <articles> method": function () {
+                    assert.isFunction (this.Author.articles);
+                },
+                "Author should have a <parents> property which is empty": function () {
+                    assert.isArray (this.Author.parents);
+                    assert.isEmpty (this.Author.parents);
+                },
+                "Author should have a <children> property": function (Author, Article) {
+                    assert.isArray (this.Author.children);
+                    assert.include (this.Author.children, this.Article);
+                },
+                "Article should have a <parents> property which includes Author": function (Author, Article) {
+                    assert.isArray  (this.Article.parents);
+                    assert.include  (this.Article.parents, this.Author);
+                },
+                "Article should have a <children> property which is empty": function (Author, Article) {
+                    assert.isArray (this.Article.children);
+                    assert.isEmpty (this.Article.children);
+                },
+                "Article should have a <byAuthor> filter": function (Author, Article) {
+                    assert.isFunction (this.Article.byAuthor);
+                    assert.isObject   (this.Article.views.byAuthor);
+                },
+                "when instantiated": {
+                    topic: function () {
+                        this.author = new(this.Author);
+                        this.article = new(this.Article);
+                        return null;
+                    },
+                    "author should have a <articles> method": function () {
+                        assert.isFunction (this.author.articles);
+                    },
+                    "author should have a <article_ids> property": function (_, Author, Article) {
+                        assert.isArray (this.author.article_ids);
+                    },
+                    "article should have a <author_id> property": function (Author, Article) {
+                        assert.include  (this.article, 'author_id');
+                        assert.isNull   (this.article.author_id);
+                    },
+                    "article should have a <author> method": function (Author, Article) {
+                        assert.isFunction (this.article.author);
+                    }
+                }
+            }
         }
     }
-}).export(module);*/
+}).export(module);
