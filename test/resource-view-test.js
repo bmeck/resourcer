@@ -10,7 +10,7 @@ var path = require('path'),
     vows = require('vows'),
     resourcer = require('resourcer');
 
-var numberOfArticles = 5;
+var numberOfArticles = 5, Article;
 
 resourcer.env = 'test';
 
@@ -41,7 +41,7 @@ vows.describe('resourcer/resource/view').addVows({
 }).addVows({
     "A Resource definition with filters": {
         topic: function () {
-            return resourcer.defineResource('Article', function () {
+            Article = resourcer.defineResource('Article', function () {
                 this.use('database');
                 this.property('author');
                 this.property('title');
@@ -50,7 +50,10 @@ vows.describe('resourcer/resource/view').addVows({
                 this.filter('all', {});
                 this.filter('published', { published: true });
                 this.filter('by', function (author) { return { author: author } });
-            }).register();
+            });
+            
+            Article.register();
+            return Article;
         }, 
         "should respond to the filters": function (R) {
             assert.isFunction (R.published);
@@ -109,6 +112,26 @@ vows.describe('resourcer/resource/view').addVows({
                     assert.equal   (res[0].author, 'yoda');
                 }
             }
+        }
+    }
+}).addBatch({
+    "A second Resource definition with filters": {
+        topic: function () {
+            return resourcer.defineResource('Person', function () {
+                this.use('database');
+                this.property('name');
+                this.property('position');
+                this.property('age', Number);
+
+                this.filter('all', {});
+                this.filter('at', function (position) { return { position: position } });
+                this.filter('age', function (age) { return { age: age } });
+            }).register();
+        },
+        "should have no side effects on the first resource views": function () {
+            var views = Object.keys(Article.views);
+            assert.isTrue(views.indexOf('at') === -1);
+            assert.isTrue(views.indexOf('age') === -1);
         }
     }
 }).export(module);
