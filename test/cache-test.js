@@ -50,7 +50,7 @@ vows.describe('resourcer/resource/cache').addVows({
         },
         "and then clearing the cache and loading it back up with `get()`": {
             topic: function () {
-                resourcer.cache.clear();
+                resourcer.caches.clear();
                 Article.get(43, this.callback);
             },
             "It should return a new instance": function (res) {
