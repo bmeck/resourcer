@@ -142,7 +142,7 @@ vows.describe('resourcer/engines/database').addVows({
             },
             "should respond with an array of all records": function (e, obj) {
                 assert.isArray (obj);
-                assert.length  (obj, 5);
+                assert.length  (obj, 4);
             }
         }
     }
