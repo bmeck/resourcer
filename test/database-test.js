@@ -168,16 +168,29 @@ vows.describe('resourcer/engines/database').addVows({
                 "should respond successfully": function (e, res) {
                     assert.isNull (e);
                 },
-                "followed by another update() request": {
+                "should save the latest revision to the cache": function (e, res) {
+                    assert.equal (this.cache.store['bob'].age, 30);
+                    assert.match (this.cache.store['bob']._rev, /^4-/);
+                },
+                "followed by another get() request": {
                     topic: function (_, _, r) {
-                        r.update('bob', { age: 37 }, this.callback);
+                        r.get('bob', this.callback);
                     },
-                    "should respond successfully": function (e, res) {
-                        assert.isNull (e);
+                    "should respond with the updated resource": function (err, obj) {
+                        assert.equal(obj._id, 'bob');
+                        assert.equal(obj.age, 30);
                     },
-                    "should save the latest revision to the cache": function (e, res) {
-                        assert.equal (this.cache.store['bob'].age, 37);
-                        assert.match (this.cache.store['bob']._rev, /^4-/);
+                    "followed by another update() request": {
+                        topic: function (_, _, _, r) {
+                            r.update('bob', { age: 40 }, this.callback);
+                        },
+                        "should respond successfully": function (e, res) {
+                            assert.isNull (e);
+                        },
+                        "should save the latest revision to the cache": function (e, res) {
+                            assert.equal (this.cache.store['bob'].age, 40);
+                            assert.match (this.cache.store['bob']._rev, /^4-/);
+                        }
                     }
                 }
             }
