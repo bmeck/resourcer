@@ -163,7 +163,7 @@ vows.describe('resourcer/engines/database').addVows({
             "an update() request": {
                 topic: function (_, r) {
                     this.cache = r.connection.cache;
-                    r.update('mat', { age: 30 }, this.callback);
+                    r.update('bob', { age: 30, newProp: 'is-set' }, this.callback);
                 },
                 "should respond successfully": function (e, res) {
                     assert.isNull (e);
@@ -179,6 +179,7 @@ vows.describe('resourcer/engines/database').addVows({
                     "should respond with the updated resource": function (err, obj) {
                         assert.equal(obj._id, 'bob');
                         assert.equal(obj.age, 30);
+                        assert.equal(obj.newProp, 'is-set');
                     },
                     "followed by another update() request": {
                         topic: function (_, _, _, r) {
@@ -189,7 +190,7 @@ vows.describe('resourcer/engines/database').addVows({
                         },
                         "should save the latest revision to the cache": function (e, res) {
                             assert.equal (this.cache.store['bob'].age, 40);
-                            assert.match (this.cache.store['bob']._rev, /^4-/);
+                            assert.match (this.cache.store['bob']._rev, /^5-/);
                         }
                     }
                 }
